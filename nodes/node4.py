@@ -16,7 +16,7 @@ async def receive_message(websocket, path):
         print(f"Node 4 received: {data['message']} from {data['node']}")
 
 async def main():
-    server = await websockets.serve(receive_message, "localhost", 8763)
+    server = await websockets.serve(receive_message, "localhost", 8764)
     await send_message()
     await server.wait_closed()
 

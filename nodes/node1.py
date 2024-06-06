@@ -6,8 +6,8 @@ import aiomysql
 async def start_db_pool():
     return await aiomysql.create_pool(
         host='localhost', port=3306,
-        user='your_user', password='your_password',
-        db='your_database', charset='utf8',
+        user='root', password='Meet@123',
+        db='library', charset='utf8',
         autocommit=True)
 
 async def send_initial_message():
@@ -28,35 +28,31 @@ async def forward_message(node_url, message):
         await websocket.send(json.dumps(message))
 
 async def handle_message(data, websocket, pool):
-    if data['type'] == 'request':
-        # Handle request
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cur:
-                # Execute SQL based on the content of the message
-                await cur.execute(f"SELECT * FROM {data['content']['table']};")
-                result = await cur.fetchall()
-                # Send response back to the user or client
-                response = {
-                    "type": "response",
-                    "content": result,
-                    "node": "Node 1"
-                }
-                await websocket.send(json.dumps(response))
-                # Concurrently forward a new message to other nodes if specified
-                if 'next_nodes' in data:
-                    tasks = [forward_message(url, {
-                        "type": "request",
-                        "content": data['content'],
-                        "node": data['node']
-                    }) for url in data['next_nodes']]
-                    await asyncio.gather(*tasks)
-    elif data['type'] == 'response':
-        # Handle responses, possibly log or do further processing
-        print(f"Response received at Node 1: {data['content']}")
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            # Execute SQL based on the content of the message
+            await cur.execute(f"SELECT * FROM book;")
+            result = await cur.fetchall()
+            # Send response back to the user or client
+            response = {
+                "type": "response",
+                "content": result,
+                "node": "Node 1"
+            }
+            await websocket.send(json.dumps(response))
+            # Concurrently forward a new message to other nodes if specified
+            if 'next_nodes' in data:
+                tasks = [forward_message(url, {
+                    "type": "request",
+                    "content": data['content'],
+                    "node": data['node']
+                }) for url in data['next_nodes']]
+                await asyncio.gather(*tasks)
 
 async def receive_message(websocket, path, pool):
     async for message in websocket:
         data = json.loads(message)
+        print(data)
         await handle_message(data, websocket, pool)
 
 async def main():
