@@ -57,6 +57,13 @@ async def handle_message(data, websocket, pool):
 async def receive_message(websocket, path, pool):
     async for message in websocket:
         data = json.loads(message)
+        transaction_id = data.get("transaction_id")
+        chops = data.get("chops")
+        timestamp = data.get("timestamp")
+
+        print(f"Node 1 received: Transaction {transaction_id} with chops {chops} from {data['node']} at timestamp {timestamp}")
+
+        # Process the chops (you can add your own logic here)
         await handle_message(data, websocket, pool)
 
 async def main():
