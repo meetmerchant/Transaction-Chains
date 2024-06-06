@@ -21,12 +21,20 @@ server_ports = {
 # Function to send a message to the target server
 async def send_message_to_server(port, message):
     uri = f"ws://localhost:{port}"
-    async with websockets.connect(uri) as websocket:
-        await websocket.send(json.dumps(message))
-        response = await websocket.recv()
-        print(f"Response from server: {response}")
+    print(uri)
+    try:
+        async with websockets.connect(uri) as websocket:
+            await websocket.send(json.dumps(message))
+            response = await websocket.recv()
+            print(f"Response from server: {response}")
+    except websockets.exceptions.ConnectionClosedError as e:
+        print(f"Connection to server on port {port} closed unexpectedly: {e}")
+    except Exception as e:
+        print(f"An error occurred while communicating with the server on port {port}: {e}")
+
 
 async def process_transaction(transaction_id):
+    print(transaction_id)
     global global_timestamp
 
     chops = chopper.get_chops(transaction_id)
