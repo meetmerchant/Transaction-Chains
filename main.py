@@ -7,6 +7,9 @@ from transaction_chops import TransactionChopper
 # Initialize TransactionChopper
 chopper = TransactionChopper()
 
+# Global counter for the timestamp
+global_timestamp = 0
+
 # Mapping of server IDs to WebSocket ports
 server_ports = {
     1: 8761,
@@ -24,6 +27,8 @@ async def send_message_to_server(port, message):
         print(f"Response from server: {response}")
 
 async def process_transaction(transaction_id):
+    global global_timestamp
+
     chops = chopper.get_chops(transaction_id)
 
     if not chops:
@@ -41,10 +46,16 @@ async def process_transaction(transaction_id):
         print(f"Invalid server ID: {server_id}")
         return
 
+    # Use the global timestamp and increment it
+    timestamp = global_timestamp
+    global_timestamp += 1
+
     message = {
         "node": "main.py",
-        "message": f"Executing transaction {transaction_id}",
-        "chops": chops
+        "transaction_id": transaction_id,
+        "chops": chops,
+        "timestamp": timestamp,
+        "message": f"Executing transaction {transaction_id} at timestamp {timestamp}"
     }
 
     await send_message_to_server(server_port, message)
