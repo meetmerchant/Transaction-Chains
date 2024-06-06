@@ -3,7 +3,7 @@ import websockets
 import json
 
 async def send_message():
-    async with websockets.connect('ws://localhost:8761') as websocket:
+    async with websockets.connect('ws://localhost:8762') as websocket:
         message = {
             "node": "Node 2",
             "message": "Hello from Node 2"
