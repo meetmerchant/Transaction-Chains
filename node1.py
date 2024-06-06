@@ -54,6 +54,7 @@ async def forward_message(node_url, message):
 
 
 async def handle_message(transaction_id, chops, timestamp, websocket, pool):
+    print("Inside handler")
     if not chops:
         print("No chops available to process.")
         return
@@ -71,7 +72,8 @@ async def handle_message(transaction_id, chops, timestamp, websocket, pool):
                 "content": result,
                 "node": f"Node {node_id}"
             }
-            await websocket.send(json.dumps(response))
+            # await websocket.send(json.dumps(response))
+    print(f"Executed transaction {transaction_id} with query {query} at timestamp {timestamp}")
 
     # Remove the first chop which has been processed
     remaining_chops = chops[1:]
@@ -81,6 +83,8 @@ async def handle_message(transaction_id, chops, timestamp, websocket, pool):
         next_chop = remaining_chops[0]
         next_node_id = next_chop[1]
         next_server_port = server_ports.get(next_node_id)
+
+        print(f"Continuing transaction {transaction_id} with timestamp {timestamp} at next node {node_id}")
 
         message = {
             "node": f"Node {node_id}",
@@ -93,42 +97,49 @@ async def handle_message(transaction_id, chops, timestamp, websocket, pool):
 
 
 async def receive_message(websocket, path, pool):
-    # Collect all messages
-    received_data = []
+    # Define batch time in seconds
+    batch_time = 10  # Adjust this value as needed
 
-    # Reading messages from the WebSocket
-    try:
-        async for message in websocket:
-            # Deserialize the incoming message from JSON
-            try:
-                data = json.loads(message)
-                # Append the parsed data to the list
-                received_data.append(data)
-            except json.JSONDecodeError as e:
-                print(f"Error decoding JSON: {e}")
-                continue  # Skip this message and continue with the next
+    while True:
+        received_data = []
+        start_time = asyncio.get_event_loop().time()
 
-        # Print received data before sorting
-        print("Received data before sorting: ", received_data)
+        try:
+            # Collect messages for a batch time duration
+            while True:
+                # Break the loop if the batch time has exceeded
+                if (asyncio.get_event_loop().time() - start_time) > batch_time:
+                    break
+                try:
+                    # Try to receive a message within the remaining batch time
+                    remaining_time = batch_time - (asyncio.get_event_loop().time() - start_time)
+                    message = await asyncio.wait_for(websocket.recv(), timeout=remaining_time)
+                    data = json.loads(message)
+                    received_data.append(data)
+                    print("Received message: ", data)
+                except asyncio.TimeoutError:
+                    # No message received within the remaining batch time
+                    break
 
-        # Sort the received data based on the 'timestamp' key
-        received_data.sort(key=lambda x: x['timestamp'])
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            continue  # Skip this message and continue with the next
+        except websockets.exceptions.ConnectionClosedError as e:
+            print(f"WebSocket connection closed unexpectedly: {e}")
+            break
 
-        # Print received data after sorting
-        print("Received data after sorting: ", received_data)
+        if received_data:
+            # print("Received data before sorting: ", received_data)
+            # Sort the received data based on the 'timestamp' key
+            received_data.sort(key=lambda x: x['timestamp'])
+            # print("Received data after sorting: ", received_data)
 
-        # Process each message in order of their timestamps
-        for data in received_data:
-            transaction_id = data.get("transaction_id")
-            chops = data.get("chops")
-            timestamp = data.get("timestamp")
-            # Process the message with given transaction details
-            await handle_message(transaction_id, chops, timestamp, websocket, pool)
-    except websockets.exceptions.ConnectionClosedError as e:
-        print(f"WebSocket connection closed unexpectedly: {e}")
-    except Exception as e:
-        print(f"Unhandled exception in receive_message: {e}")
-
+            # Process each message in order of their timestamps
+            for data in received_data:
+                transaction_id = data.get("transaction_id")
+                chops = data.get("chops")
+                timestamp = data.get("timestamp")
+                await handle_message(transaction_id, chops, timestamp, websocket, pool)
 
 
 
