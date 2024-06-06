@@ -9,7 +9,7 @@ class TransactionChopper:
     def __init__(self):
         self.chops = {
             'T1': [('read from staff', 4, [])],
-            'T2': [('read from book', 1, [1]), ('read from member', 100, [1]), ('insert into borrow', 3, [1, 100, 1, '05/05/24', '05/25/24', '05/20/24'])],
+            'T2': [('read from book', 1, [1]), ('read from member', 1, [100]), ('insert into borrow', 3, [1, 100, 1, '05/05/24', '05/25/24', '05/20/24'])],
             'T3': [('read from book', 2, [2]), ('read from member', 2, [200]), ('insert into reservation', 3, [1, 200, 2, '06/04/24', 'Reserved'])],
             'T4': [('insert into member', 1, [300, 'Bob', 'bob@gmail.com', '67890', 'Newport, CA', '06/04/24'])],
             'T5': [('insert into book', 2, [3, 'Algorithms', 'Goodrich', 5, 4])],
@@ -18,10 +18,11 @@ class TransactionChopper:
         }
 
     def get_chops(self, transaction):
-        return [(transaction, self.chops.get(transaction, []))]
+        return self.chops.get(transaction, [])
 
 # Example usage
+'''
 chopper = TransactionChopper()
-chopper.chop_transaction('T7')
 print("Chops for T7:", chopper.get_chops('T7'))
 print("Chops for T8:", chopper.get_chops('T8'))
+'''
